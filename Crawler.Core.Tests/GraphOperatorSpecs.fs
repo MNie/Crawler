@@ -13,13 +13,13 @@ module GraphOperatorSpecs =
     let e41 = {Name = "e41"; Url = "http://www.wp.pl/7"; Parent = Some(e31)}
     let e41underE21 = {Name = "e41Undere21"; Url = "http://www.wp.pl/7"; Parent = Some(e21)}
     let e41underE12 = {Name = "e41undere12"; Url = "http://www.wp.pl/7"; Parent = Some(e12)}
-    let links = [root;e11;e12;e21;e22;e31;e41]
+    let links = [root;e11;e12;e21;e22;e31;e41;e41underE21;e41underE12]
 
     let graphOperator = GraphOperator()
     [<Fact>]
     let ``when calculating size of graph``() =
         let result = graphOperator.CalculateNodes(links)
-        result.ShouldBe(links.Length)
+        result.ShouldBe(links |> Seq.groupBy(fun x -> x.Url) |> Seq.length)
 
     [<Fact>]
     let ``when calculating number of edges in graph``() =
@@ -30,5 +30,43 @@ module GraphOperatorSpecs =
     let ``when calculating max depth of graph``() =
         let result = graphOperator.Depth(links)
         result.ShouldBe(4)
+
+    [<Fact>]
+    let ``when calculating average distance of graph``() =
+        let result = graphOperator.AverageDistance(links)
+        result.ShouldBe(2 |> float)
+
+    [<Fact>]
+    let ``shortest paths``() =
+        let result = graphOperator.ShortestPaths(links) |> List.ofSeq
+        let expectedResult = 
+            [
+                (1, 8);
+                (2, 11);
+                (3, 2)
+            ]
+        result.ShouldBe(expectedResult)
+
+    [<Fact>]
+    let ``in paths``() =
+        let result = graphOperator.InPaths(links) |> List.ofSeq
+        let expectedResult = 
+            [
+                (0, 1);
+                (1, 5);
+                (3, 1)
+            ]
+        result.ShouldBe(expectedResult)
+
+    [<Fact>]
+    let ``out paths``() =
+        let result = graphOperator.OutPaths(links) |> List.ofSeq
+        let expectedResult = 
+            [
+                (0, 1);
+                (1, 4);
+                (2, 2)
+            ]
+        result.ShouldBe(expectedResult)
 
     

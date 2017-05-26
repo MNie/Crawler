@@ -36,7 +36,7 @@ type Crawler(uri: Uri, robotsPostFix: string) =
             |> Option.map (fun a -> { 
                     Name = x.InnerText();
                     Url = a.Value();
-                    Parent = Option.Some(parent)
+                    Parent = Some(parent)
                 })
         )
         |> Seq.filter (fun x -> 
@@ -58,6 +58,3 @@ type Crawler(uri: Uri, robotsPostFix: string) =
         |> Seq.map (fun x -> getLinksRecursively(x)(5))
         |> Seq.collect id
         |> Seq.collect id
-        // zaimplementować pagerank
-        // dodać funkcje od badania tego ile ma zagłębień i jakie jest najkrótsze przejście z punktu A do B
-        // jakies 2 dodatkowe rzeczy

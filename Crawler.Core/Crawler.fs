@@ -19,42 +19,67 @@ type Crawler(uri: Uri, robotsPostFix: string) =
     let getBody parentUrl =
         let robotsUrl = sprintf "%s/%s" parentUrl RobotsPostFix
         let response =
-            Http.RequestString(
+            Http.AsyncRequestString(
                 robotsUrl
             )
         response
 
-    let getAllLinks parent = 
-        let robotsBody = getBody parent.Url
+    let getRobots startRobots =
+        let robotsBody = 
+            try
+                Async.RunSynchronously startRobots
+            with
+                | _ -> ""
         let robots = RobotsTxt(robotsBody)
-        let disallowedRoutes = robots.GetDisallowRoutes()
+        robots.GetDisallowRoutes()
 
-        HtmlDocument.Load(parent.Url)
-        |> fun x -> x.Descendants ["a"]
-        |> Seq.choose (fun x -> 
-            x.TryGetAttribute("href")
-            |> Option.map (fun a -> { 
-                    Name = x.InnerText();
-                    Url = a.Value();
-                    Parent = Some(parent)
-                })
-        )
-        |> Seq.filter (fun x -> 
+    let getValidLinks parent (allLinks: seq<HtmlNode>) =
+        allLinks
+        |> PSeq.choose (fun x ->
+                x.TryGetAttribute("href")
+                |> Option.map (fun a -> { 
+                        Name = x.InnerText();
+                        Url = a.Value();
+                        Parent = Some(parent)
+                    })
+            )
+
+    let filterNotAllowed disallowedRoutes parent data =
+        data
+        |> PSeq.filter (fun x ->
                 (Helper.isAllowed(x.Url, disallowedRoutes, parent.Url))
                 &&
                 x.Url.StartsWith(BaseUrl)
+                &&
+                not (x.Url.Contains("@"))
             )
-        |> Seq.append [parent]
 
-    let rec getLinksRecursively parent maxDeep =
+    let getAllLinks parent = async {
+            let! startRobots = Async.StartChild (getBody parent.Url)
+            let! startDownload = Async.StartChild (HtmlDocument.AsyncLoad(parent.Url))
+
+            let disallowedRoutes = getRobots(startRobots)
+            let! downloadedSite = startDownload
+            
+            let result = 
+                downloadedSite
+                |> fun x -> x.Descendants ["a"]
+                |> getValidLinks parent
+                |> filterNotAllowed disallowedRoutes parent
+                |> PSeq.append [parent]
+            return result
+        }
+
+    let rec getLinksRecursively maxDeep parent =
         if maxDeep > 1 then seq {
             yield getAllLinks parent
-            yield! getLinksRecursively parent (maxDeep - 1) }
+            yield! getLinksRecursively (maxDeep - 1) parent }
         else seq { yield getAllLinks parent }
 
     member this.Start() =
         let root = {Name="root"; Url = BaseUrl; Parent = None}
-        getAllLinks root
-        |> Seq.map (fun x -> getLinksRecursively(x)(5))
-        |> Seq.collect id
-        |> Seq.collect id
+
+        Async.RunSynchronously (getAllLinks(root))
+        |> PSeq.map (fun x -> getLinksRecursively(10)(x))
+        |> PSeq.collect id
+        |> PSeq.collect(fun x -> Async.RunSynchronously x)

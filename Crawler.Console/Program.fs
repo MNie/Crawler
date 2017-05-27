@@ -18,6 +18,12 @@ let writeToFile content =
 [<EntryPoint>]
 let main argv =
     let crawler = new Crawler(Settings.Url, Settings.Robots)
+    let stopwatch = System.Diagnostics.Stopwatch.StartNew()
+    
     let result = crawler.Start()
-    writeToFile result
+    printf "%A" (result |> Seq.length)
+    stopwatch.Stop()
+    printf "Finish calculating time of execution: %A" stopwatch.ElapsedMilliseconds
+    //writeToFile result
+    System.Console.ReadKey() |> ignore
     0 // return an integer exit code

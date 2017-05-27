@@ -64,6 +64,9 @@
     <Reference Include="FSharp.Charting">
       <HintPath>..\packages\FSharp.Charting.0.90.14\lib\net40\FSharp.Charting.dll</HintPath>
     </Reference>
+    <Reference Include="FSharp.Collections.ParallelSeq">
+      <HintPath>..\packages\FSharp.Collections.ParallelSeq.1.0.2\lib\net40\FSharp.Collections.ParallelSeq.dll</HintPath>
+    </Reference>
     <Reference Include="FSharp.Configuration">
       <HintPath>..\packages\FSharp.Configuration.1.2.0\lib\net46\FSharp.Configuration.dll</HintPath>
     </Reference>

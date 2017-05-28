@@ -1,5 +1,7 @@
 ﻿namespace Crawler.Core
 
+open FSharp.Collections.ParallelSeq
+
 type GraphOperator() =
     let CalculateEdgesToParents(element: Link) =
         if element.Parent.IsSome = true then 1
@@ -15,6 +17,7 @@ type GraphOperator() =
         data 
         |> Seq.groupBy(fun x -> x.Url) 
         |> Seq.map(fun x -> (fst x, snd x |> Seq.filter(fun y -> y.Parent.IsSome) |> Seq.map(fun y -> y.Parent.Value.Url)))
+        |> Seq.toList
        
     let formatResult result = 
         result
@@ -22,6 +25,18 @@ type GraphOperator() =
         |> Seq.groupBy id
         |> Seq.map(fun x -> (fst x, snd x |> Seq.length))
         |> Seq.sortBy(fun x -> fst x)
+
+    let createMatrice data lastIndex =
+        let matrice = Array2D.zeroCreate (lastIndex + 1) (lastIndex + 1)
+        let getElem index = data |> Seq.item index
+        
+        for i in [0..lastIndex] do
+            for j in [0..lastIndex] do
+                let contains url = snd (getElem i) |> Seq.contains url
+                if fst (getElem j) |> contains then 
+                    matrice.[i, j] <- 1
+                    matrice.[j, i] <- 1
+        matrice
 
     member this.CalculateNodes(data: seq<Link>) =
         data
@@ -44,41 +59,75 @@ type GraphOperator() =
         |> formatResult
 
     member this.OutPaths(data: seq<Link>) =
-        let elementsWithOut = 
+        let getElementsWithOut() = 
             data
-            |> Seq.filter(fun x -> x.Parent.IsSome)
-            |> Seq.map(fun x -> x.Parent.Value.Url)
-        
+            |> PSeq.filter(fun x -> x.Parent.IsSome)
+            |> PSeq.map(fun x -> x.Parent.Value.Url)
+            |> PSeq.toList
+        let elementsWithOut = getElementsWithOut()
+
         let elementsWithInButWithoutOut =
             data
-            |> Seq.distinctBy(fun x -> x.Url)
-            |> Seq.filter(fun x -> 
+            |> PSeq.distinctBy(fun x -> x.Url)
+            |> PSeq.filter(fun x -> 
                 elementsWithOut 
-                |> Seq.filter(fun y -> y = x.Url)
-                |> Seq.isEmpty
+                |> PSeq.filter(fun y -> y = x.Url)
+                |> PSeq.isEmpty
             )
-            |> Seq.length
+            |> PSeq.length
 
         elementsWithOut
-        |> Seq.groupBy id
+        |> PSeq.groupBy id
         |> formatResult
-        |> Seq.append [0, elementsWithInButWithoutOut]
+        |> PSeq.append [0, elementsWithInButWithoutOut]
 
-    member this.ShortestPaths(data: seq<Link>): seq<int*int> =
-        let groupedData = groupData data
-
+    member this.Clasterization(data: seq<Link>) =
+        let groupedData = groupData(data)
+        
         let nOfElements = groupedData |> Seq.length
         let lastIndex = nOfElements |> (+) -1
-        let matrice = Array2D.zeroCreate nOfElements nOfElements
-        let getElem index = groupedData |> Seq.item index
+        let matrice = createMatrice groupedData lastIndex
+
+        [0..lastIndex]
+        |> Seq.mapi(fun i z ->
+            let neighbors = 
+                matrice.[i, 0..lastIndex]
+                |> Seq.mapi(fun j x -> 
+                    if j = i then (j, 0)
+                    else (j, x)
+                )
+                |> Seq.filter(fun x -> snd x = 1)
+                |> Seq.map fst
+                |> Array.ofSeq
+            
+            let edgesBetween = 
+                neighbors
+                |> Seq.mapi(fun j x -> 
+                    neighbors
+                    |> Seq.mapi(fun k y ->
+                        let hasConnection =
+                            matrice.[neighbors.[j], neighbors.[k]] = 1
+                        if j <> k && hasConnection then 1
+                        else 0
+                    )
+                    |> Seq.sum
+                )
+                |> Seq.sum
+                |> float
+            let neighborsCount = neighbors |> Seq.length |> float
+            
+            if neighbors |> Seq.length < 2 then (i, 0.0)
+            else (i, edgesBetween/(neighborsCount * (neighborsCount - 1.0)))
+        )
+            
+
+    member this.ShortestPaths(data: seq<Link>): seq<int*int> =
+        let groupedData = groupData(data)
         
-        for i in [0..lastIndex] do
-            for j in [0..lastIndex] do
-                let contains url = snd (getElem i) |> Seq.contains url
-                if fst (getElem j) |> contains then 
-                    matrice.[i, j] <- 1
-                    matrice.[j, i] <- 1
-        
+        let nOfElements = groupedData |> Seq.length
+        let lastIndex = nOfElements |> (+) -1
+        let matrice = createMatrice groupedData lastIndex
+
         for k in [0..lastIndex] do
             for i in [0..lastIndex] do
                 for j in [0..lastIndex] do

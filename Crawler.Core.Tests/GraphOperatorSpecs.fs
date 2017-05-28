@@ -70,4 +70,15 @@ module GraphOperatorSpecs =
             ]
         result.ShouldBe(expectedResult)
 
+    [<Fact>]
+    let ``clasterization``() =
+        let result = graphOperator.Clasterization(links) |> List.ofSeq
+        let expectedResult = 
+            [
+                (0, 1.0);
+                (1, 4.0);
+                (2, 2.0)
+            ]
+        result.ShouldBe(expectedResult)
+
     

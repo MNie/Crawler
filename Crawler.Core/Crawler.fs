@@ -58,16 +58,19 @@ type Crawler(uri: Uri, robotsPostFix: string) =
             let! startRobots = Async.StartChild (getBody parent.Url)
             let! startDownload = Async.StartChild (HtmlDocument.AsyncLoad(parent.Url))
 
-            let disallowedRoutes = getRobots(startRobots)
-            let! downloadedSite = startDownload
+            try
+                let disallowedRoutes = getRobots(startRobots)
+                let! downloadedSite = startDownload
             
-            let result = 
-                downloadedSite
-                |> fun x -> x.Descendants ["a"]
-                |> getValidLinks parent
-                |> filterNotAllowed disallowedRoutes parent
-                |> PSeq.append [parent]
-            return result
+                let result = 
+                    downloadedSite
+                    |> fun x -> x.Descendants ["a"]
+                    |> getValidLinks parent
+                    |> filterNotAllowed disallowedRoutes parent
+                    |> PSeq.append [parent]
+                return result
+            with
+                | _ -> return [] |> PSeq.ofList
         }
 
     let rec getLinksRecursively maxDeep parent =

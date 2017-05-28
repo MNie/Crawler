@@ -39,11 +39,6 @@ type GraphOperator() =
         |> Seq.map(fun x -> CalculateDepth(x))
         |> Seq.max
 
-    member this.AverageDistance(data: seq<Link>) =
-        data
-        |> Seq.map(fun x -> CalculateDepth(x) |> float)
-        |> Seq.average
-
     member this.InPaths(data: seq<Link>) =
         groupData data
         |> formatResult
@@ -95,6 +90,16 @@ type GraphOperator() =
         |> Seq.collect id
         |> Seq.groupBy fst
         |> Seq.map(fun x -> (fst x, snd x |> Seq.sumBy(fun y -> snd y)))
+
+    member this.AverageDistance(data: seq<Link>) =
+        let calculation = this.ShortestPaths(data)
+        let divideBy = calculation |> Seq.sumBy(fun x -> snd x) |> float
+        let result = 
+            calculation
+            |> Seq.map(fun x -> fst x * snd x)
+            |> Seq.sum
+            |> float
+        result / divideBy
                 
 
 

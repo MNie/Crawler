@@ -34,7 +34,8 @@ module GraphOperatorSpecs =
     [<Fact>]
     let ``when calculating average distance of graph``() =
         let result = graphOperator.AverageDistance(links)
-        result.ShouldBe(2 |> float)
+        true.ShouldBe(result > 1.71)
+        true.ShouldBe(result < 1.72)
 
     [<Fact>]
     let ``shortest paths``() =

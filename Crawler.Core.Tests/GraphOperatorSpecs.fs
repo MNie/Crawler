@@ -72,13 +72,21 @@ module GraphOperatorSpecs =
 
     [<Fact>]
     let ``clasterization``() =
-        let result = graphOperator.Clasterization(links) |> List.ofSeq
+        let e12a = {Name = "e12"; Url = "http://www.wp.pl/3"; Parent = Some(e11)}
+        let e21a = {Name = "e21"; Url = "http://www.wp.pl/4"; Parent = Some(e22)}
+        let linksForClasterization = [root;e11;e12;e21;e22;e31;e41;e41underE21;e41underE12;e12a;e21a]
+        let result = graphOperator.Clasterization(linksForClasterization) |> List.ofSeq
         let expectedResult = 
             [
-                (0, 1.0);
-                (1, 4.0);
-                (2, 2.0)
+                (0.0, 2);
+                (1.0/3.0, 4);
+                (1.0, 1);
             ]
         result.ShouldBe(expectedResult)
+
+    [<Fact>]
+    let ``diameter``() =
+        let result = graphOperator.Diameter(links)
+        result.ShouldBe(3)
 
     

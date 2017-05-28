@@ -61,25 +61,25 @@ type GraphOperator() =
     member this.OutPaths(data: seq<Link>) =
         let getElementsWithOut() = 
             data
-            |> PSeq.filter(fun x -> x.Parent.IsSome)
-            |> PSeq.map(fun x -> x.Parent.Value.Url)
-            |> PSeq.toList
+            |> Seq.filter(fun x -> x.Parent.IsSome)
+            |> Seq.map(fun x -> x.Parent.Value.Url)
+            |> Seq.toList
         let elementsWithOut = getElementsWithOut()
 
         let elementsWithInButWithoutOut =
             data
-            |> PSeq.distinctBy(fun x -> x.Url)
-            |> PSeq.filter(fun x -> 
+            |> Seq.distinctBy(fun x -> x.Url)
+            |> Seq.filter(fun x -> 
                 elementsWithOut 
-                |> PSeq.filter(fun y -> y = x.Url)
-                |> PSeq.isEmpty
+                |> Seq.filter(fun y -> y = x.Url)
+                |> Seq.isEmpty
             )
-            |> PSeq.length
+            |> Seq.length
 
         elementsWithOut
-        |> PSeq.groupBy id
+        |> Seq.groupBy id
         |> formatResult
-        |> PSeq.append [0, elementsWithInButWithoutOut]
+        |> Seq.append [0, elementsWithInButWithoutOut]
 
     member this.Clasterization(data: seq<Link>) =
         let groupedData = groupData(data)
@@ -119,8 +119,10 @@ type GraphOperator() =
             if neighbors |> Seq.length < 2 then (i, 0.0)
             else (i, edgesBetween/(neighborsCount * (neighborsCount - 1.0)))
         )
-            
-
+        |> Seq.groupBy snd
+        |> Seq.map(fun x -> (fst x, snd x |> Seq.length))
+        |> Seq.sortBy fst
+        
     member this.ShortestPaths(data: seq<Link>): seq<int*int> =
         let groupedData = groupData(data)
         
@@ -152,6 +154,11 @@ type GraphOperator() =
         |> Seq.collect id
         |> Seq.groupBy fst
         |> Seq.map(fun x -> (fst x, snd x |> Seq.sumBy(fun y -> snd y)))
+
+    member this.Diameter(data: seq<Link>) =
+        this.ShortestPaths(data)
+        |> Seq.maxBy(fun x -> fst x)
+        |> fst
 
     member this.AverageDistance(data: seq<Link>) =
         let filterNoConnections toFilter =

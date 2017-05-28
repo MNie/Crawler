@@ -70,4 +70,9 @@ module GraphOperatorWithIncompleteGraphSpecs =
             ]
         result.ShouldBe(expectedResult)
 
+    [<Fact>]
+    let ``diameter``() =
+        let result = graphOperator.Diameter(links)
+        result.ShouldBe(2)
+
     

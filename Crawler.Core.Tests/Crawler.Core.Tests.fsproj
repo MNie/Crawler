@@ -52,9 +52,10 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="GraphOperatorSpecs.fs" />
+    <Compile Include="GraphOperatorWithIncompleteGraphSpecs.fs" />
     <None Include="Script.fsx" />
     <Content Include="packages.config" />
+    <Compile Include="GraphOperatorSpecs.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Collections.ParallelSeq">

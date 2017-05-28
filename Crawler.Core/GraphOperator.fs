@@ -44,12 +44,25 @@ type GraphOperator() =
         |> formatResult
 
     member this.OutPaths(data: seq<Link>) =
-        data
-        |> Seq.filter(fun x -> x.Parent.IsSome)
-        |> Seq.map(fun x -> x.Parent.Value.Url)
+        let elementsWithOut = 
+            data
+            |> Seq.filter(fun x -> x.Parent.IsSome)
+            |> Seq.map(fun x -> x.Parent.Value.Url)
+        
+        let elementsWithInButWithoutOut =
+            data
+            |> Seq.distinctBy(fun x -> x.Url)
+            |> Seq.filter(fun x -> 
+                elementsWithOut 
+                |> Seq.filter(fun y -> y = x.Url)
+                |> Seq.isEmpty
+            )
+            |> Seq.length
+
+        elementsWithOut
         |> Seq.groupBy id
         |> formatResult
-        |> Seq.append [(0,1)]
+        |> Seq.append [0, elementsWithInButWithoutOut]
 
     member this.ShortestPaths(data: seq<Link>): seq<int*int> =
         let groupedData = groupData data
@@ -92,10 +105,15 @@ type GraphOperator() =
         |> Seq.map(fun x -> (fst x, snd x |> Seq.sumBy(fun y -> snd y)))
 
     member this.AverageDistance(data: seq<Link>) =
+        let filterNoConnections toFilter =
+            toFilter
+            |> Seq.filter(fun x -> fst x <> 0)
+
         let calculation = this.ShortestPaths(data)
-        let divideBy = calculation |> Seq.sumBy(fun x -> snd x) |> float
+        let divideBy = calculation |> filterNoConnections |> Seq.sumBy(fun x -> snd x) |> float
         let result = 
             calculation
+            |> filterNoConnections
             |> Seq.map(fun x -> fst x * snd x)
             |> Seq.sum
             |> float

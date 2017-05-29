@@ -70,7 +70,6 @@ type GraphOperator() =
         |> Seq.sum
 
     member this.Depth(data: seq<Link>) =
-        let root = data |> Seq.find(fun x -> x.Parent.IsNone)
         data
         |> Seq.map(fun x -> CalculateDepth(x))
         |> Seq.max

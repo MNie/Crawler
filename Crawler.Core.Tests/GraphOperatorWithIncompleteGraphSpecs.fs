@@ -75,4 +75,12 @@ module GraphOperatorWithIncompleteGraphSpecs =
         let result = graphOperator.Diameter(links)
         result.ShouldBe(2)
 
+    [<Fact>]
+    let ``clique``() =
+        let result = graphOperator.Cliques(links) |> List.ofSeq
+        let expectedResult = 
+            [
+                (0, 7)
+            ]
+        result.ShouldBe(expectedResult)
     

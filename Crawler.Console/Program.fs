@@ -6,13 +6,13 @@ open FSharp.Charting
 
 type Settings = AppSettings<"app.config">
 
-let prettyPrint content =
+let prettyPrint content fileName =
     content
-    |> Seq.iter (fun x -> File.AppendAllLines("result.txt", [sprintf "Name: %s, Url: %s, Parent: %A" x.Name x.Url x.Parent]))
+    |> Seq.iter (fun x -> File.AppendAllLines(fileName, [sprintf "%A" x]))
 
-let writeToFile content =
-    let stringify = sprintf "%A" content
-    prettyPrint(content) |> ignore
+let writeToFile content file =
+    let stringify = sprintf "%s: %A" file content
+    prettyPrint(content)(sprintf "%s.txt" file) |> ignore
     printf "%s" stringify
     
 
@@ -25,27 +25,28 @@ let main argv =
     printf "%A" (result |> Seq.toList)
     stopwatch.Stop()
     printf "Finish calculating time of execution: %A" stopwatch.ElapsedMilliseconds
-    //writeToFile result
+    
     let nodes = graph.CalculateNodes(result)
     let edges = graph.CalculateEdges(result)
     let inEdges = graph.InPaths(result)
     let outEdges = graph.OutPaths(result)
     let shortestPaths = graph.ShortestPaths(result)
     let averagePaths = graph.AverageDistance(result)
+    let clasterization = graph.Clasterization(result)
+    let diameter = graph.Diameter(result)
     let maxDeep = graph.Depth(result)
+    let cliques = graph.Cliques(result)
 
-    printf "nodes: %A\n" nodes
-    printf "edges: %A\n" edges
-    printf "inEdges: %A\n" inEdges
-    printf "outEdges: %A\n" outEdges
-    printf "shortes Paths: %A\n" shortestPaths
-    printf "avg paths: %A\n" averagePaths
-    printf "max deep: %A\n" maxDeep
+    writeToFile [nodes] "nodes"
+    writeToFile [edges] "edges"
+    writeToFile inEdges "in"
+    writeToFile outEdges "out"
+    writeToFile shortestPaths "shortest"
+    writeToFile [averagePaths] "avg"
+    writeToFile clasterization "claster"
+    writeToFile [diameter] "diameter"
+    writeToFile [maxDeep] "deep"
+    writeToFile cliques "cliques"
     
-    Chart.Bar(inEdges, "in edges").SaveChartAs("in edges.png", ChartTypes.ChartImageFormat.Png)
-    Chart.Bar(outEdges, "out edges").SaveChartAs("out edges.png", ChartTypes.ChartImageFormat.Png)
-    Chart.Bar(shortestPaths, "shortest paths").SaveChartAs("shortest path.png", ChartTypes.ChartImageFormat.Png)
-    
-
     System.Console.ReadKey() |> ignore
     0 // return an integer exit code

@@ -83,6 +83,6 @@ type Crawler(uri: Uri, robotsPostFix: string) =
         let root = {Name="root"; Url = BaseUrl; Parent = None}
 
         Async.RunSynchronously (getAllLinks(root))
-        |> PSeq.map (fun x -> getLinksRecursively(10)(x))
+        |> PSeq.map (fun x -> getLinksRecursively(25)(x))
         |> PSeq.collect id
         |> PSeq.collect(fun x -> Async.RunSynchronously x)

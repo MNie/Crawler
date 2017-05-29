@@ -79,7 +79,7 @@ module GraphOperatorSpecs =
         let expectedResult = 
             [
                 (0.0, 2);
-                (1.0/3.0, 4);
+                (0.33, 4);
                 (1.0, 1);
             ]
         result.ShouldBe(expectedResult)
@@ -88,5 +88,17 @@ module GraphOperatorSpecs =
     let ``diameter``() =
         let result = graphOperator.Diameter(links)
         result.ShouldBe(3)
+
+    [<Fact>]
+    let ``clique``() =
+        let e12a = {Name = "e12"; Url = "http://www.wp.pl/3"; Parent = Some(e11)}
+        let e21a = {Name = "e21"; Url = "http://www.wp.pl/4"; Parent = Some(e22)}
+        let linksForClique = [root;e11;e12;e21;e22;e31;e41;e41underE21;e41underE12;e12a;e21a]
+        let result = graphOperator.Cliques(linksForClique) |> List.ofSeq
+        let expectedResult = 
+            [
+                (2, 7);
+            ]
+        result.ShouldBe(expectedResult)
 
     

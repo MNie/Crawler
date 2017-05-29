@@ -1,6 +1,6 @@
 ﻿namespace Crawler.Core
 
-open FSharp.Collections.ParallelSeq
+open System
 
 type GraphOperator() =
     let CalculateEdgesToParents(element: Link) =
@@ -37,6 +37,27 @@ type GraphOperator() =
                     matrice.[i, j] <- 1
                     matrice.[j, i] <- 1
         matrice
+
+    let shortestPathsMatrice data =
+        let groupedData = groupData(data)
+        
+        let nOfElements = groupedData |> Seq.length
+        let lastIndex = nOfElements |> (+) -1
+        let matrice = createMatrice groupedData lastIndex
+
+        for k in [0..lastIndex] do
+            for i in [0..lastIndex] do
+                for j in [0..lastIndex] do
+                    let shouldReplace =
+                        let newValue = (matrice.[i, k] + matrice.[k, j])
+                        let isShorter = matrice.[i, j] > newValue && newValue > 0
+                        let isEmpty = matrice.[i, j] = 0 
+                        let hasConnection = matrice.[i, k] <> 0 && matrice.[k, j] <> 0
+                        (isShorter || isEmpty) && hasConnection
+                    
+                    if shouldReplace then
+                        matrice.[i, j] <- matrice.[i, k] + matrice.[k, j]
+        matrice, lastIndex
 
     member this.CalculateNodes(data: seq<Link>) =
         data
@@ -120,28 +141,11 @@ type GraphOperator() =
             else (i, edgesBetween/(neighborsCount * (neighborsCount - 1.0)))
         )
         |> Seq.groupBy snd
-        |> Seq.map(fun x -> (fst x, snd x |> Seq.length))
+        |> Seq.map(fun x -> (Math.Round(fst x, 2), snd x |> Seq.length))
         |> Seq.sortBy fst
         
     member this.ShortestPaths(data: seq<Link>): seq<int*int> =
-        let groupedData = groupData(data)
-        
-        let nOfElements = groupedData |> Seq.length
-        let lastIndex = nOfElements |> (+) -1
-        let matrice = createMatrice groupedData lastIndex
-
-        for k in [0..lastIndex] do
-            for i in [0..lastIndex] do
-                for j in [0..lastIndex] do
-                    let shouldReplace =
-                        let newValue = (matrice.[i, k] + matrice.[k, j])
-                        let isShorter = matrice.[i, j] > newValue && newValue > 0
-                        let isEmpty = matrice.[i, j] = 0 
-                        let hasConnection = matrice.[i, k] <> 0 && matrice.[k, j] <> 0
-                        (isShorter || isEmpty) && hasConnection
-                    
-                    if shouldReplace then
-                        matrice.[i, j] <- matrice.[i, k] + matrice.[k, j]
+        let matrice, lastIndex = shortestPathsMatrice data
         
         let partialResult = 
             [1..lastIndex]
@@ -174,6 +178,24 @@ type GraphOperator() =
             |> Seq.sum
             |> float
         result / divideBy
-                
+
+    member this.Cliques(data: seq<Link>) =
+        let matrice, lastIndex = shortestPathsMatrice data
+
+        [0..lastIndex]
+        |> Seq.mapi(fun i x -> 
+            [0..lastIndex]
+            |> Seq.mapi(fun j x ->
+                if i <> j then matrice.[i, j] + matrice.[j, i]
+                else Int32.MaxValue
+            )
+            |> Seq.minBy id
+        )
+        |> Seq.map(fun x ->
+            if x = Int32.MaxValue then 0
+            else x
+        )
+        |> Seq.groupBy id
+        |> Seq.map(fun x -> (fst x, snd x |> Seq.length))
 
 

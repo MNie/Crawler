@@ -59,6 +59,42 @@ type GraphOperator() =
                         matrice.[i, j] <- matrice.[i, k] + matrice.[k, j]
         matrice, lastIndex
 
+    let rec pageRankCalculator previousPrevious previous iterationIndex (ranks: float[,]) (matrice: int[,]) (outDegrees: int[]) damping lastIndex  =
+        let diff: float = previousPrevious - previous
+        let absDiff = Math.Abs(diff)
+        if Math.Abs(diff) < (0.00001) then
+            ranks.[iterationIndex, 0..]
+        else
+            [0..lastIndex]
+            |> Seq.iteri(fun i x -> 
+                ranks.[iterationIndex, i] <- 
+                    let sum =
+                        [0..lastIndex]
+                        |> Seq.mapi(fun j y -> 
+                            if i < j then
+                                matrice.[i, j]
+                            else
+                                0
+                        )
+                        |> Seq.mapi(fun j y ->
+                            if y = 1 && outDegrees.[j] > 0 then
+                                ranks.[(iterationIndex + 1) % 2, j] / (outDegrees.[j] |> float)
+                            else
+                                0.0
+                        )
+                        |> Seq.sumBy id
+                    let sum1 = 
+                        sum
+                        |> (*) (1.0 - damping)
+                    let sum2 =
+                        sum1
+                        |> (+) (damping / ((lastIndex + 1) |> float))
+                    sum2
+            )
+            let valueToSqrt = ranks.[0, 0..] |> Seq.zip(ranks.[1, 0..]) |> Seq.map(fun x -> (fst x - snd x) * (fst x - snd x)) |> Seq.sumBy id
+            let actual = Math.Sqrt(valueToSqrt)
+            pageRankCalculator previous actual ((iterationIndex + 1)%2) ranks matrice outDegrees damping lastIndex
+
     member this.CalculateNodes(data: seq<Link>) =
         data
         |> Seq.distinctBy(fun x -> x.Url)
@@ -196,5 +232,35 @@ type GraphOperator() =
         )
         |> Seq.groupBy id
         |> Seq.map(fun x -> (fst x, snd x |> Seq.length))
+
+    member this.PageRank(data: seq<Link>, damping) =
+        let groupedData = groupData(data)
+        
+        let nOfElements = groupedData |> Seq.length
+        let lastIndex = nOfElements |> (+) -1
+        let matrice = createMatrice groupedData lastIndex
+        
+        let ranks = Array2D.zeroCreate 2 nOfElements
+        ranks.[0, 0..] <- [0..lastIndex] |> Seq.map(fun x -> (1.0/((lastIndex + 1) |> float))) |> Seq.toArray
+        
+        let out =
+                data
+                |> Seq.filter(fun x -> x.Parent.IsSome)
+                |> Seq.map(fun x -> x.Parent.Value.Url)
+                |> Seq.toList
+
+        let calculateOut urlToCheck =
+            out |> Seq.filter(fun x -> x = urlToCheck) |> Seq.length
+
+        let outDegrees =
+            groupedData
+            |> Seq.map(fun x -> calculateOut (fst x))
+            |> Seq.toArray
+
+        let iterationIndex = 1
+
+        pageRankCalculator 10.0 0.0 iterationIndex ranks matrice outDegrees damping lastIndex
+
+            
 
 

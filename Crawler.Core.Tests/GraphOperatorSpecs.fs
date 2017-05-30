@@ -101,4 +101,19 @@ module GraphOperatorSpecs =
             ]
         result.ShouldBe(expectedResult)
 
+    [<Fact>]
+    let ``pagerank``() =
+        let result = graphOperator.PageRank(links, 0.2)
+        let expectedResult = 
+            [
+                0.088457142857142873;
+                0.092571428571428582;
+                0.028571428571428574;
+                0.028571428571428574;
+                0.051428571428571435;
+                0.028571428571428574;
+                0.028571428571428574;
+            ] |> Seq.toArray
+        result.ShouldBe(expectedResult)
+
     

@@ -71,10 +71,7 @@ type GraphOperator() =
                     let sum =
                         [0..lastIndex]
                         |> Seq.mapi(fun j y -> 
-                            if i < j then
-                                matrice.[i, j]
-                            else
-                                0
+                            matrice.[i, j]
                         )
                         |> Seq.mapi(fun j y ->
                             if y = 1 && outDegrees.[j] > 0 then
@@ -235,10 +232,10 @@ type GraphOperator() =
 
     member this.PageRank(data: seq<Link>, damping) =
         let groupedData = groupData(data)
-        
+        let getElem index = groupedData |> Seq.item index
         let nOfElements = groupedData |> Seq.length
         let lastIndex = nOfElements |> (+) -1
-        let matrice = createMatrice groupedData lastIndex
+        let matrice = Array2D.zeroCreate nOfElements nOfElements
         
         let ranks = Array2D.zeroCreate 2 nOfElements
         ranks.[0, 0..] <- [0..lastIndex] |> Seq.map(fun x -> (1.0/((lastIndex + 1) |> float))) |> Seq.toArray
@@ -257,9 +254,17 @@ type GraphOperator() =
             |> Seq.map(fun x -> calculateOut (fst x))
             |> Seq.toArray
 
+        for i in [0..lastIndex] do
+            for j in [0..lastIndex] do
+                let contains url = snd (getElem i) |> Seq.contains url
+                if fst (getElem j) |> contains then 
+                    matrice.[j, i] <- 1
+
         let iterationIndex = 1
 
         pageRankCalculator 10.0 0.0 iterationIndex ranks matrice outDegrees damping lastIndex
+        |> Seq.groupBy id
+        |> Seq.map(fun x -> (fst x, snd x |> Seq.length))
 
             
 
